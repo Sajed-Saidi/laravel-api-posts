@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class UpdatePostRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        $rules = [
+            'title' => 'string|unique:posts,title,' . $this->route('post'),
+            'slug' => 'string|unique:posts,slug,' . $this->route('post'),
+            'content' => 'string',
+            'excerpt' => 'string',
+            'status' => 'in:draft,published,archived',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ];
+
+        if ($this->isMethod('put')) {
+            // For PUT, require all fields
+            foreach ($rules as $field => &$rule) {
+                $rule = 'required|' . $rule;
+            }
+        }
+
+        return $rules;
+    }
+}
