@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
-use App\Models\Api\Category;
-use App\Models\Api\Post;
+use App\Models\Category;
+use App\Models\Post;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 

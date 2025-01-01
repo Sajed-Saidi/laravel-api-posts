@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Models\Api;
+namespace App\Models;
 
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -21,11 +23,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $user_id
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Api\Category> $categories
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Category> $categories
  * @property-read int|null $categories_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Api\Comment> $comments
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Comment> $comments
  * @property-read int|null $comments_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Api\Like> $likes
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Like> $likes
  * @property-read int|null $likes_count
  * @property-read User $user
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Post newModelQuery()
@@ -47,7 +49,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Post extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasFactory;
 
     protected $table = 'posts';
 
@@ -88,5 +90,17 @@ class Post extends Model
     public function getFirstImageAttribute()
     {
         return $this->images()->first()?->image_path;
+    }
+
+    protected $dates = ['created_at', 'updated_at'];
+
+    public function getCreatedAtAttribute($value)
+    {
+        return Carbon::parse($value)->setTimezone('UTC');
+    }
+
+    public function getUpdatedAtAttribute($value)
+    {
+        return Carbon::parse($value)->setTimezone('UTC');
     }
 }

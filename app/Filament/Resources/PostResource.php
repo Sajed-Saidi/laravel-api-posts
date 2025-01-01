@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PostResource\Pages;
-use App\Models\Api\Category;
-use App\Models\Api\Post;
+use App\Models\Category;
+use App\Models\Post;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Forms;

@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCommentRequest;
-use App\Models\Api\Comment;
-use App\Models\Api\Post;
+use App\Http\Resources\CommentResource;
+use App\Models\Comment;
+use App\Models\Post;
 use App\Traits\ApiResponseTrait;
 use Auth;
 use Illuminate\Http\Request;
@@ -14,6 +15,16 @@ class CommentController extends Controller
 {
     use ApiResponseTrait;
 
+    public function getPostsComments(Request $request, Post $post)
+    {
+        $comments = Comment::with('user.profile')->where('post_id', $post->id)->get();
+
+        return $this->success(
+            CommentResource::collection($comments),
+            "Comments retrieved successfully!",
+
+        );
+    }
     public function store(StoreCommentRequest $request, Post $post)
     {
         $validatedData = $request->validated();
@@ -24,12 +35,11 @@ class CommentController extends Controller
             'user_id' => Auth::id(),
         ]);
 
+        $comment->load(['user']);
+
         return $this->success(
-            [
-                'comment' => $comment
-            ],
+            new CommentResource(($comment)),
             "Comment Created Successfully!",
-            201
         );
     }
 

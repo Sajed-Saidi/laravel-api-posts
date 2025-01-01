@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PostResource;
 use App\Http\Resources\CategoryResource;
-use App\Models\Api\Category;
+use App\Models\Category;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
@@ -21,18 +21,8 @@ class CategoryController extends Controller
     {
         $categories = Category::all();
 
-        if ($categories->count() == 0) {
-            return $this->success(
-                [
-                    'categories' => []
-                ],
-                "No Categories Found",
-            );
-        }
         return $this->success(
-            [
-                'categories' => CategoryResource::collection($categories)
-            ],
+            CategoryResource::collection($categories),
             "Categories Fetched Successfully!"
         );
     }

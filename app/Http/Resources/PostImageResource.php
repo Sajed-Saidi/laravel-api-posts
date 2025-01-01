@@ -16,10 +16,8 @@ class PostImageResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'post_id' => $this->post_id,
-            'image_path' => asset('storage/' . $this->image_path),
-            'created_at' => $this->created_at->toDateTimeString(),
-            'updated_at' => $this->updated_at->toDateTimeString(),
+            'postId' => $this->post_id,
+            'imagePath' => ('storage/' . $this->image_path),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,9 +17,12 @@ class CommentResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'post_id' => $this->post_id,
-            'user_id' => $this->user_id,
+            'postId' => $this->post_id,
+            'userId' => $this->user_id,
             'content' => $this->content,
+            'user' => new UserResource($this->whenLoaded('user')),
+            'createdAt' => ($this->created_at)->format('Y-m-d H:i:s'),
+            'updatedAt' => ($this->updated_at)->format('Y-m-d H:i:s'),
         ];
     }
 }

@@ -1,19 +1,21 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Api\Post;
+use App\Models\Post;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Password;
+use phpDocumentor\Reflection\Types\This;
 
 class AuthController extends Controller
 {
@@ -33,7 +35,6 @@ class AuthController extends Controller
                 'token' => $user->createToken('Registered User')->plainTextToken
             ],
             'User created successfully!',
-            201
         );
     }
 
@@ -48,7 +49,7 @@ class AuthController extends Controller
             return $this->error(null, 'Invalid email or password', 401);
         }
 
-        $user = Auth::user();
+        $user = User::with('profile')->where('id', Auth::id())->first();
 
         return $this->success(
             [
@@ -145,5 +146,15 @@ class AuthController extends Controller
         ]);
 
         return $this->success('', 'Password changed successfully.');
+    }
+
+    public function me()
+    {
+        $user = User::with('profile')->find(Auth::id());
+
+        return $this->success(
+            new UserResource($user),
+            'User Successfull!!'
+        );
     }
 }

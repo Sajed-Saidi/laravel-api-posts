@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePostRequest;
@@ -8,7 +8,7 @@ use App\Http\Requests\UpdatePostRequest;
 use App\Http\Resources\PostImageResource;
 use App\Http\Resources\PostResource;
 use App\Http\Resources\UserResource;
-use App\Models\Api\Post;
+use App\Models\Post;
 use App\Traits\ApiResponseTrait;
 use Auth;
 use Illuminate\Http\JsonResponse;
@@ -22,9 +22,41 @@ class PostController extends Controller
     /**
      * Display a listing of the resource.
      */
+    public function userPosts(Request $request)
+    {
+        $request->validate(
+            [
+                'user_id' => 'required|exists:users,id'
+            ]
+        );
+        $query = Post::query()->with(['user.profile', 'categories', 'likes', 'comments'])->where('user_id', $request->user_id);
+
+        if ($search = $request->input('search')) {
+            $query->whereRaw(
+                "MATCH(title, content, excerpt) AGAINST(? IN BOOLEAN MODE)",
+                [$search]
+            );
+        }
+        $posts = $query->latest()->paginate($request->input('per_page', 10));
+
+        return $this->success(
+            [
+
+                'posts' => PostResource::collection($posts), // Transform using PostResource
+                'pagination' => [
+                    'current_page' => $posts->currentPage(),
+                    'last_page' => $posts->lastPage(),
+                    'per_page' => $posts->perPage(),
+                    'total' => $posts->total(),
+                ],
+
+            ],
+            "Posts fetched successfully!"
+        );
+    }
     public function index(Request $request)
     {
-        $query = Auth::user()->posts()->with(['categories', 'likes', 'comments']);
+        $query = Post::with(['user.profile', 'categories', 'likes']);
 
         if ($search = $request->input('search')) {
             $query->whereRaw(
@@ -35,19 +67,17 @@ class PostController extends Controller
 
         $posts = $query->paginate($request->input('per_page', 10));
 
-        if ($posts->count() == 0) {
-            return $this->success(
-                [
-                    'posts' => []
-                ],
-                "Posts Not Found",
-                404
-            );
-        }
-
         return $this->success(
             [
-                'posts' => PostResource::collection($posts),
+
+                'posts' => PostResource::collection($posts), // Transform using PostResource
+                'pagination' => [
+                    'current_page' => $posts->currentPage(),
+                    'last_page' => $posts->lastPage(),
+                    'per_page' => $posts->perPage(),
+                    'total' => $posts->total(),
+                ],
+
             ],
             "Posts fetched successfully!"
         );
@@ -58,18 +88,29 @@ class PostController extends Controller
      */
     public function store(StorePostRequest $request)
     {
-        // dd($request->hasFile('images'));
         $validatedData = $request->validated();
 
-        $validatedData['slug'] = Str::slug($validatedData['slug']);
+        $validatedData['slug'] = Str::slug($validatedData['title']);
+        $excerptLength = 60;
+
+        if (strlen($validatedData['content']) > $excerptLength) {
+            $validatedData['excerpt'] = substr($validatedData['content'], 0, $excerptLength) . '...';
+        } else {
+            $validatedData['excerpt'] = $validatedData['content'];
+        }
+        $validatedData['status'] = 'published';
+        $validatedData['user_id'] = auth()->id();
 
         $post = Post::create($validatedData);
+
+        if ($request->has('categories') && \count($request['categories']) > 0) {
+            $post->categories()->syncWithoutDetaching($validatedData['categories']);
+        }
 
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
                 try {
-                    $uniqueName = Str::uuid() . '.' . $image->getClientOriginalExtension();
-                    $path = $image->storeAs('images/posts', $uniqueName, 'public');
+                    $path = $this->storeImage($image);
                     $post->images()->create(['image_path' => $path]);
                 } catch (\Exception $e) {
                     \Log::error("Image upload failed: " . $e->getMessage());
@@ -78,11 +119,8 @@ class PostController extends Controller
         }
 
         return $this->success(
-            [
-                'post' => new PostResource($post),
-            ],
-            'Post created successfully!',
-            201
+            new PostResource($post),
+            'Post Created Successfully!',
         );
     }
 
@@ -119,14 +157,13 @@ class PostController extends Controller
 
         if ($request->hasFile('images')) {
             $post->images()->each(function ($image) {
-                Storage::disk('public')->delete($image->image_path);
+                $this->deleteImage($image->image_path);
                 $image->delete();
             });
 
             foreach ($request->file('images') as $image) {
                 try {
-                    $uniqueName = Str::uuid() . '.' . $image->getClientOriginalExtension();
-                    $path = $image->storeAs('images/posts', $uniqueName, 'public');
+                    $path = $this->storeImage($image);
                     $post->images()->create(['image_path' => $path]);
                 } catch (\Exception $e) {
                     \Log::error("Image upload failed: " . $e->getMessage());
